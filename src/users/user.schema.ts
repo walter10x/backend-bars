@@ -11,6 +11,9 @@ export class User extends Document {
 
   @Prop({ required: true })
   name: string;
+
+  @Prop({ required: true, default: 'client' })
+  role: 'owner' | 'client' | 'admin';
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
