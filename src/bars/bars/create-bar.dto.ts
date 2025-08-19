@@ -1,4 +1,3 @@
-// create-bar.dto.ts
 import { IsString, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -63,7 +62,7 @@ class SocialLinksDto {
 
 export class CreateBarDto {
   @IsString()
-  name: string;
+  nameBar: string; // Adaptado al esquema
 
   @IsString()
   location: string;
@@ -74,15 +73,13 @@ export class CreateBarDto {
 
   @IsOptional()
   @IsString()
-  ownerId?: string;
+  ownerId?: string; // Puede ser obligatorio segun logica de negocio y autenticacion
 
   @IsOptional()
   @IsString()
   phone?: string;
 
-  @IsOptional()
-  @IsString()
-  email?: string;
+  // Eliminamos email para que no cause conflicto con usuario
 
   @IsOptional()
   @IsString()
