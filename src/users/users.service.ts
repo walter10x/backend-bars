@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User } from './user.schema';
-import { CreateUserDto } from '../dto/create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -21,13 +21,21 @@ export class UsersService {
     }
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const role = createUserDto.role ?? 'client';
+
     const newUser = new this.userModel({
       ...createUserDto,
       password: hashedPassword,
+      role,
     });
 
     this.logger.log(`Usuario registrado: ${createUserDto.email}`);
     return newUser.save();
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    this.logger.log(`Buscando usuario por email: ${email}`);
+    return this.userModel.findOne({ email }).exec();
   }
 
   async findAll(): Promise<User[]> {
@@ -47,10 +55,22 @@ export class UsersService {
 
   async update(id: string, updateUserDto: Partial<CreateUserDto>): Promise<User> {
     this.logger.log(`Intentando actualizar usuario con id: ${id}`);
+
+    // No permitir cambio de email ni role en esta función
+    if ('email' in updateUserDto) {
+      delete updateUserDto.email;
+      this.logger.warn(`Intento de cambiar email bloqueado para usuario con id: ${id}`);
+    }
+    if ('role' in updateUserDto) {
+      delete updateUserDto.role;
+      this.logger.warn(`Intento de cambiar rol bloqueado para usuario con id: ${id}`);
+    }
+
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
       this.logger.log(`Contraseña encriptada para usuario con id: ${id}`);
     }
+
     const updatedUser = await this.userModel.findByIdAndUpdate(id, updateUserDto, { new: true }).exec();
     if (!updatedUser) {
       this.logger.warn(`No se pudo actualizar. Usuario con id ${id} no encontrado`);
@@ -62,11 +82,14 @@ export class UsersService {
 
   async remove(id: string): Promise<void> {
     this.logger.log(`Intentando eliminar usuario con id: ${id}`);
+
     const result = await this.userModel.findByIdAndDelete(id).exec();
+
     if (!result) {
       this.logger.warn(`No se pudo eliminar. Usuario con id ${id} no encontrado`);
       throw new NotFoundException(`Usuario con id ${id} no encontrado`);
     }
+
     this.logger.log(`Usuario con id ${id} eliminado correctamente`);
   }
 }
