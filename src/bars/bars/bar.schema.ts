@@ -1,11 +1,11 @@
 // bar.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 @Schema()
 export class Bar extends Document {
   @Prop({ required: true, unique: true })
-  name: string;
+  nameBar: string;  // Nombre del bar para identificar
 
   @Prop({ required: true })
   location: string;
@@ -13,14 +13,13 @@ export class Bar extends Document {
   @Prop()
   description: string;
 
-  @Prop()
-  ownerId: string; // Relacionado con usuario
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  ownerId: Types.ObjectId;  // Relación con usuario (dueno del bar)
 
   @Prop({ unique: true })
   phone: string;
 
-  @Prop({ unique: true })
-  email: string;
+  // Quitamos el email del bar, solo está en usuario
 
   @Prop()
   photo: string;

@@ -11,10 +11,10 @@ export class BarsController {
 
   @Post()
   async create(@Body() createBarDto: CreateBarDto): Promise<Bar> {
-    this.logger.log(`Intentando crear bar: ${createBarDto.name}`);
+    this.logger.log(`Intentando crear bar: ${createBarDto.nameBar}`);
     try {
       const bar = await this.barsService.create(createBarDto);
-      this.logger.log(`Bar creado exitosamente: ${bar.name}`);
+      this.logger.log(`Bar creado exitosamente: ${bar.nameBar}`);
       return bar;
     } catch (error) {
       this.logger.error(`Error al crear bar: ${error.message}`);

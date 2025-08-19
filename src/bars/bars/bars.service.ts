@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Bar } from './bar.schema';
 import { CreateBarDto } from './create-bar.dto';
 
@@ -11,12 +11,12 @@ export class BarsService {
   constructor(@InjectModel(Bar.name) private barModel: Model<Bar>) {}
 
   async create(createBarDto: CreateBarDto): Promise<Bar> {
-    this.logger.log(`Intentando crear bar: ${createBarDto.name}`);
+    this.logger.log(`Intentando crear bar: ${createBarDto.nameBar}`);
 
     // Validar nombre único
-    const existsByName = await this.barModel.findOne({ name: createBarDto.name });
+    const existsByName = await this.barModel.findOne({ nameBar: createBarDto.nameBar });
     if (existsByName) {
-      this.logger.warn(`Intento de duplicado: Bar con nombre "${createBarDto.name}" ya existe`);
+      this.logger.warn(`Intento de duplicado: Bar con nombre "${createBarDto.nameBar}" ya existe`);
       throw new ConflictException('Ya existe un bar con ese nombre');
     }
 
@@ -26,15 +26,6 @@ export class BarsService {
       if (existsByPhone) {
         this.logger.warn(`Intento de duplicado: Bar con teléfono "${createBarDto.phone}" ya existe`);
         throw new ConflictException('Ya existe un bar con ese teléfono');
-      }
-    }
-
-    // Validar correo único
-    if (createBarDto.email) {
-      const existsByEmail = await this.barModel.findOne({ email: createBarDto.email });
-      if (existsByEmail) {
-        this.logger.warn(`Intento de duplicado: Bar con email "${createBarDto.email}" ya existe`);
-        throw new ConflictException('Ya existe un bar con ese correo electrónico');
       }
     }
 
@@ -55,8 +46,18 @@ export class BarsService {
       }
     }
 
-    const createdBar = new this.barModel(createBarDto);
-    this.logger.log(`Bar ${createBarDto.name} creado en BD`);
+    // Asegurar que ownerId sea ObjectId válido y está presente
+    if (!createBarDto.ownerId) {
+      throw new ConflictException('El campo ownerId es obligatorio');
+    }
+    const ownerObjectId = new Types.ObjectId(createBarDto.ownerId);
+
+    const createdBar = new this.barModel({
+      ...createBarDto,
+      ownerId: ownerObjectId,
+    });
+
+    this.logger.log(`Bar ${createBarDto.nameBar} creado en BD`);
     return createdBar.save();
   }
 
@@ -79,10 +80,10 @@ export class BarsService {
     this.logger.log(`Actualizando bar con id: ${id}`);
 
     // Validaciones similares a create para evitar duplicados al actualizar
-    if (updateBarDto.name) {
-      const existsByName = await this.barModel.findOne({ name: updateBarDto.name, _id: { $ne: id } });
+    if (updateBarDto.nameBar) {
+      const existsByName = await this.barModel.findOne({ nameBar: updateBarDto.nameBar, _id: { $ne: id } });
       if (existsByName) {
-        this.logger.warn(`Intento de actualizar con nombre duplicado: "${updateBarDto.name}"`);
+        this.logger.warn(`Intento de actualizar con nombre duplicado: "${updateBarDto.nameBar}"`);
         throw new ConflictException('Ya existe un bar con ese nombre');
       }
     }
@@ -92,14 +93,6 @@ export class BarsService {
       if (existsByPhone) {
         this.logger.warn(`Intento de actualizar con teléfono duplicado: "${updateBarDto.phone}"`);
         throw new ConflictException('Ya existe un bar con ese teléfono');
-      }
-    }
-
-    if (updateBarDto.email) {
-      const existsByEmail = await this.barModel.findOne({ email: updateBarDto.email, _id: { $ne: id } });
-      if (existsByEmail) {
-        this.logger.warn(`Intento de actualizar con email duplicado: "${updateBarDto.email}"`);
-        throw new ConflictException('Ya existe un bar con ese correo electrónico');
       }
     }
 
