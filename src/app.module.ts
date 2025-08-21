@@ -23,3 +23,4 @@ import { AuthModule } from './auth/auth.module';
   providers: [AppService],
 })
 export class AppModule {}
+  console.log('Variable de entorno TEST_VAR:', process.env.TEST_VAR);
