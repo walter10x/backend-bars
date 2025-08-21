@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Bar } from './bar.schema';
@@ -13,14 +13,12 @@ export class BarsService {
   async create(createBarDto: CreateBarDto): Promise<Bar> {
     this.logger.log(`Intentando crear bar: ${createBarDto.nameBar}`);
 
-    // Validar nombre único
     const existsByName = await this.barModel.findOne({ nameBar: createBarDto.nameBar });
     if (existsByName) {
       this.logger.warn(`Intento de duplicado: Bar con nombre "${createBarDto.nameBar}" ya existe`);
       throw new ConflictException('Ya existe un bar con ese nombre');
     }
 
-    // Validar teléfono único
     if (createBarDto.phone) {
       const existsByPhone = await this.barModel.findOne({ phone: createBarDto.phone });
       if (existsByPhone) {
@@ -29,7 +27,6 @@ export class BarsService {
       }
     }
 
-    // Validar redes sociales únicas
     if (createBarDto.socialLinks?.facebook) {
       const existsByFacebook = await this.barModel.findOne({ 'socialLinks.facebook': createBarDto.socialLinks.facebook });
       if (existsByFacebook) {
@@ -46,7 +43,6 @@ export class BarsService {
       }
     }
 
-    // Asegurar que ownerId sea ObjectId válido y está presente
     if (!createBarDto.ownerId) {
       throw new ConflictException('El campo ownerId es obligatorio');
     }
@@ -79,46 +75,53 @@ export class BarsService {
   async update(id: string, updateBarDto: Partial<CreateBarDto>): Promise<Bar> {
     this.logger.log(`Actualizando bar con id: ${id}`);
 
-    // Validaciones similares a create para evitar duplicados al actualizar
-    if (updateBarDto.nameBar) {
-      const existsByName = await this.barModel.findOne({ nameBar: updateBarDto.nameBar, _id: { $ne: id } });
+    const barIdObj = new Types.ObjectId(id);
+    const barActual = await this.barModel.findById(barIdObj).exec();
+    if (!barActual) {
+      this.logger.warn(`Bar con id ${id} no encontrado`);
+      throw new NotFoundException(`Bar with id ${id} not found`);
+    }
+
+    // Validar nombre solo si cambia
+    if (updateBarDto.nameBar && updateBarDto.nameBar !== barActual.nameBar) {
+      const existsByName = await this.barModel.findOne({ nameBar: updateBarDto.nameBar, _id: { $ne: barIdObj } });
       if (existsByName) {
         this.logger.warn(`Intento de actualizar con nombre duplicado: "${updateBarDto.nameBar}"`);
         throw new ConflictException('Ya existe un bar con ese nombre');
       }
     }
 
-    if (updateBarDto.phone) {
-      const existsByPhone = await this.barModel.findOne({ phone: updateBarDto.phone, _id: { $ne: id } });
+    // Validar teléfono solo si cambia
+    if (updateBarDto.phone && updateBarDto.phone !== barActual.phone) {
+      const existsByPhone = await this.barModel.findOne({ phone: updateBarDto.phone, _id: { $ne: barIdObj } });
       if (existsByPhone) {
         this.logger.warn(`Intento de actualizar con teléfono duplicado: "${updateBarDto.phone}"`);
         throw new ConflictException('Ya existe un bar con ese teléfono');
       }
     }
 
-    if (updateBarDto.socialLinks?.facebook) {
-      const existsByFacebook = await this.barModel.findOne({ 'socialLinks.facebook': updateBarDto.socialLinks.facebook, _id: { $ne: id } });
+    // Validar Facebook solo si cambia
+    if (updateBarDto.socialLinks?.facebook && updateBarDto.socialLinks.facebook !== barActual.socialLinks?.facebook) {
+      const existsByFacebook = await this.barModel.findOne({ 'socialLinks.facebook': updateBarDto.socialLinks.facebook, _id: { $ne: barIdObj } });
       if (existsByFacebook) {
         this.logger.warn(`Intento de actualizar con Facebook duplicado: "${updateBarDto.socialLinks.facebook}"`);
         throw new ConflictException('Ya existe un bar con ese Facebook');
       }
     }
 
-    if (updateBarDto.socialLinks?.instagram) {
-      const existsByInstagram = await this.barModel.findOne({ 'socialLinks.instagram': updateBarDto.socialLinks.instagram, _id: { $ne: id } });
+    // Validar Instagram solo si cambia
+    if (updateBarDto.socialLinks?.instagram && updateBarDto.socialLinks.instagram !== barActual.socialLinks?.instagram) {
+      const existsByInstagram = await this.barModel.findOne({ 'socialLinks.instagram': updateBarDto.socialLinks.instagram, _id: { $ne: barIdObj } });
       if (existsByInstagram) {
         this.logger.warn(`Intento de actualizar con Instagram duplicado: "${updateBarDto.socialLinks.instagram}"`);
         throw new ConflictException('Ya existe un bar con ese Instagram');
       }
     }
 
-    const updatedBar = await this.barModel.findByIdAndUpdate(id, updateBarDto, { new: true }).exec();
-    if (!updatedBar) {
-      this.logger.warn(`No se pudo actualizar. Bar con id ${id} no encontrado`);
-      throw new NotFoundException(`Bar with id ${id} not found`);
-    }
+    Object.assign(barActual, updateBarDto);
+
     this.logger.log(`Bar con id ${id} actualizado correctamente`);
-    return updatedBar;
+    return barActual.save();
   }
 
   async remove(id: string): Promise<void> {
