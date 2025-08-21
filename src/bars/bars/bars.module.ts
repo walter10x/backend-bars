@@ -8,5 +8,6 @@ import { Bar, BarSchema } from './bar.schema';
   imports: [MongooseModule.forFeature([{ name: Bar.name, schema: BarSchema }])],
   controllers: [BarsController],
   providers: [BarsService],
+  exports: [BarsService],  // Exportamos el servicio para que otros módulos lo puedan usar
 })
 export class BarsModule {}
