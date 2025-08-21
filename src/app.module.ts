@@ -6,21 +6,21 @@ import { AppService } from './app.service';
 import { BarsModule } from './bars/bars/bars.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { MenusModule } from './menus/menus.module'; // <-- Importa el módulo menús
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Para que la configuración esté disponible globalmente
+      isGlobal: true,
       envFilePath: process.env.NODE_ENV === 'docker' ? '.env.docker' : '.env',
     }),
-   MongooseModule.forRoot(process.env.MONGO_URI!)
-,
+    MongooseModule.forRoot(process.env.MONGO_URI!),
     BarsModule,
     UsersModule,
     AuthModule,
+    MenusModule, // <-- Agrega aquí
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-  console.log('Variable de entorno TEST_VAR:', process.env.TEST_VAR);
