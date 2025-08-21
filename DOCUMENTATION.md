@@ -7,7 +7,7 @@ En la terminal dentro de la carpeta raíz del proyecto:
 bash
 docker-compose -f docker-compose.dev.yml up -d
 
-Esto iniciará el contenedor con MongoDB en segundo plano.
+Este comando iniciará el contenedor con MongoDB en segundo plano.
 Iniciar servidor backend con hot reload (modo desarrollo)
 
 En otra terminal, en la misma carpeta:
@@ -18,7 +18,8 @@ yarn start:dev
 Se arrancará el servidor de NestJS con recarga automática ante cambios en el código (hot reload).
 Detener aplicaciones
 
-    Para detener el servidor NestJS: Ctrl + C en la terminal donde se ejecuta.
+    Para detener el servidor NestJS:
+    Presiona Ctrl + C en la terminal donde se ejecuta.
 
     Para detener y eliminar contenedores Docker:
 
@@ -31,20 +32,21 @@ text
 backend-bars/
 │
 ├── src/
-│   ├── app.module.ts            # Módulo raíz
-│   ├── main.ts                  # Punto de entrada
-│   ├── menus/                   # Módulo capítulos para menús (futuro)
-│   ├── promotions/              # Módulo promociones (futuro)
-│   ├── bars/                    # Módulo bares (lógica, esquemas, controladores)
-│   ├── images/                  # Gestión de imágenes (uploads, etc.)
-│   ├── auth/                    # Módulo autenticación (JWT, guards)
-│   ├── common/                  # Código común y utilidades
-│   └── config/                  # Configuraciones del proyecto
+│   ├── app.module.ts             # Módulo raíz de NestJS
+│   ├── main.ts                  # Punto de entrada de la aplicación
+│   ├── bars/                    # Módulo bares: esquemas, servicios, controladores
+│   ├── auth/                    # Módulo autenticación: JWT, guards, estrategias
+│   ├── users/                   # Módulo usuarios: usuario y roles
+│   ├── common/                  # Código común y utilidades compartidas
+│   ├── config/                  # Configuraciones de entorno y proyecto
+│   ├── menus/                   # (Futuro) menús
+│   ├── promotions/              # (Futuro) promociones
+│   └── images/                  # Gestión de imágenes y uploads
 │
-├── test/                       # Tests automáticos
+├── test/                       # Pruebas automatizadas
 ├── .env                        # Variables de entorno
-├── Dockerfile                  # Imagen Docker para producción
-├── docker-compose.yml          # Configuración general Docker
+├── Dockerfile                  # Imagen Docker producción
+├── docker-compose.yml          # Configuración Docker general
 ├── docker-compose.dev.yml      # Configuración Docker para desarrollo
 └── README.md / DOCUMENTATION.md # Documentación principal
 
@@ -58,86 +60,114 @@ backend-bars/
 
     Gestor de paquetes: Yarn
 
-    Librerías principales:
-
-        @nestjs/mongoose, mongoose
-
-        @nestjs/config
-
-        @nestjs/passport, passport, passport-local, @nestjs/jwt, passport-jwt, bcrypt
-
-        @nestjs/platform-express, multer
-
-        class-validator, class-transformer
+    Librerías claves:
+    @nestjs/mongoose, mongoose,
+    @nestjs/config,
+    @nestjs/passport, passport, passport-local, @nestjs/jwt, passport-jwt, bcrypt,
+    class-validator, class-transformer,
+    @nestjs/platform-express, multer
 
 4. Funcionalidades principales implementadas
 Usuarios
 
-    Registro de usuarios con rol (client por defecto, owner, admin).
+    Registro con rol asignado automáticamente (client por defecto, owner, admin).
 
-    Hash seguro de contraseñas (bcrypt).
+    Contraseñas almacenadas hasheadas con bcrypt.
 
-    Validación rigurosa con class-validator.
+    Validación estricta con class-validator.
 
-    Operaciones CRUD: registro, listado, búsqueda por ID, actualización y eliminación.
+    Operaciones CRUD completas.
 
-    Control de seguridad básico previsto para que solo usuarios actualicen o eliminen su cuenta.
+    Control básico para que solo usuarios autorizados modifiquen o eliminen su propia cuenta.
 
 Roles de usuarios
 
-    client: usuario normal que busca bares, guarda favoritos, etc.
+    client: usuario normal, lee bares, guarda favoritos, etc.
 
-    owner: propietario que gestiona sus bares.
+    owner: propietario que puede gestionar sus bares.
 
-    admin (pendiente): acceso completo al sistema.
+    admin: acceso completo (pendiente implementación).
 
 Bares
 
-    Creación y gestión de bares vinculados a usuarios owner.
+    Creación y gestión de bares vinculados a un usuario owner.
 
-    Validaciones estrictas de unicidad (nameBar, teléfono, redes sociales).
+    Validaciones estrictas para evitar duplicados en campos clave:
 
-    Estructura de horarios, fotos, ubicación y redes sociales.
+        nameBar
 
-    Asociación con el propietario vía ownerId.
+        phone (teléfono)
 
-5. API REST - Endpoints resumen principáles
+        socialLinks.facebook y socialLinks.instagram
+
+    Asociación del bar con su propietario mediante ownerId.
+
+    Estructura cuidada para horarios, fotos, ubicación y redes sociales.
+
+    Control detallado en el servicio BarsService con logs para trazabilidad.
+
+5. API REST — Endpoints resumen principales
 Endpoint	Método	Descripción	Notas importantes
-/users/register	POST	Registrar nuevo usuario	role opcional, contraseña mínima 6
-/users	GET	Obtener todos los usuarios	Requiere admin (pendiente)
+/users/register	POST	Registrar nuevo usuario	Rol opcional, contraseña mínima 6
+/users	GET	Listar todos los usuarios	Requiere rol admin (pendiente activar)
 /users/:id	GET	Obtener usuario por ID	
-/users/:id	PUT	Actualizar usuario (solo su cuenta)	No cambia email ni rol
-/users/:id	DELETE	Eliminar cuenta usuario (auto-baja)	Solo su propia cuenta
+/users/:id	PUT	Actualizar usuario (solo su propia cuenta)	No permite cambiar email ni rol
+/users/:id	DELETE	Eliminar cuenta (auto-baja)	Solo el propio usuario puede eliminar
 /bars	POST	Crear un bar vinculado a un owner	ownerId obligatorio
-/bars	GET	Listar bares	
+/bars	GET	Listar todos los bares	
 /bars/:id	GET	Obtener bar por ID	
-/bars/:id	PUT	Actualizar bar	
+/bars/:id	PUT	Actualizar bar	Validación personalizada y control duplicados
 /bars/:id	DELETE	Eliminar bar	
-6. Validaciones importantes
+6. Validaciones importantes en la lógica de negocio
 
-    Emails únicos en usuarios.
+    Campos únicos: emails en usuarios; y en bares nameBar, teléfono, Facebook e Instagram.
 
-    Roles válidos y asignación por defecto.
+    Las validaciones para evitar duplicados se aplican tanto en creación como en actualización.
 
-    Contraseñas hasheadas y seguras.
+    En la actualización, solo se valida si el campo cambia respecto al valor actual.
 
-    Campos obligatorios y tipos estrictos.
+    En consultas de duplicados, el documento actualmente actualizado se excluye para evitar falsos positivos.
 
-    Duplicados no permitidos en bares (nombre, teléfono, redes sociales).
+    ownerId debe ser un ObjectId válido para asociar bares con sus dueños.
 
-    Logs detallados en servicios para trazabilidad y depuración.
+    Logs detallados en servicios para facilitar seguimiento y depuración.
 
-7. Próximos pasos recomendados
+    Manejo robusto de errores: ConflictException, NotFoundException, ForbiddenException donde aplican.
 
-    Implementar módulo completo de autenticación con JWT.
+7. Flujo detallado: actualización segura de un bar
 
-    Añadir Guards para control de acceso según rol y usuario.
+    El controlador recibe la petición PUT a /bars/:id con los datos a modificar y el token JWT en headers.
 
-    Mejorar manejo de errores y respuestas API.
+    Se activan los Guards (JwtAuthGuard, RolesGuard) para validar que el token es válido y que el usuario tiene rol owner o admin.
 
-    Documentar API con Swagger / OpenAPI.
+    En el servicio BarsService.update():
 
-    Añadir funcionalidades de cliente: favoritos, comentarios, etc.
+        Se obtiene el bar actual por ID.
 
-    Mejorar testing con pruebas unitarias e integradas.
+        Se valida que el bar existe; si no, error 404.
 
+        Para cada campo único enviado en la actualización:
+
+            Se verifica si el valor nuevo es diferente al actual.
+
+            Si es diferente, se busca si existe otro bar distinto con ese valor.
+
+            Si se encuentra, se lanza error de conflicto para evitar duplicados.
+
+        Se aplican cambios y se guarda el bar actualizado.
+
+    Se devuelve al cliente el bar modificado o el error específico si ocurre.
+
+8. Próximos pasos recomendados
+
+    Completar módulo de autenticación JWT (si no está finalizado).
+
+    Añadir Guards y decoradores personalizados para control granular de acceso basado en roles y propietario.
+
+    Mejorar manejo de errores general y estructura de respuestas REST.
+
+    Documentar API con Swagger / OpenAPI para facilitar pruebas y uso.
+
+    Implementar funcionalidades cliente adicionales (favoritos, comentarios).
+
+    Potenciar testing automatizado con pruebas unitarias y de integración.
